@@ -85,9 +85,9 @@ export default class NewMenu extends View {
         ...(this.showMissing ? missing.map(missingRow) : [])]
       : installed.map((a, i) => this.row(a.key, icon(a), a.name, () => run("tab.new", { name: a.name, space: space?.id, argv: a.run }),
         i < 9 ? `${mod} ${i + 1}` : ""));
-    // 204: Herdr's 167 (terminal, label, divider, three rows, padding) leaves the list ~6 px short,
-    // which shows a scrollbar; plus 31 for the Edit agents row.
-    return v_flex().min_h(0).w_full().h(Math.min(491, 204 + Math.max(1, rows.length) * 31)).bg(t.popover).p(5).text_size(12.8)
+    // Sized by its content. The agent list shows up to 9 rows (⌘1–9) and scrolls past that; its
+    // height is set from its rows, since a scroll area has no height of its own.
+    return v_flex().min_h(0).w_full().bg(t.popover).p(5).text_size(12.8)
       .id("new-menu").track_focus(this.handle)
       .on_key_down((e) => {
         if (!e.modifiers.control && !e.modifiers.platform) return;
@@ -100,7 +100,7 @@ export default class NewMenu extends View {
       })
       .child(this.row("terminal", svg("icons/shell.svg").size(14), "Terminal", () => run("tab.new", { space: space?.id }), `${mod} T`))
       .child(div().px(9).pt(8).pb(4).text_size(11).text_color(t.dim).child(this.editing ? `Installed (${all.length}) · pin or hide` : "Start an agent"))
-      .child(v_flex().flex_1().min_h(0).overflow_y_scrollbar()
+      .child(v_flex().flex_none().h(Math.min(9, Math.max(1, rows.length)) * 31).overflow_y_scrollbar()
         .children(rows)
         .when(this.agents.length === 0, el => el.child(div().px(9).py(6).text_color(t.dim).child(this.failed ? "Could not load agents" : "Checking installed agents…"))))
       .child(this.row("edit-agents", svg(`${DIR}/${this.editing ? "check.svg" : "settings.svg"}`).size(14).text_color(t.dim),

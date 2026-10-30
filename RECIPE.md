@@ -19,7 +19,7 @@ Top to bottom:
 
 1. **Terminal** row, `icons/shell.svg`, hint `⌘ T` (`Ctrl T` off macOS).
 2. Section label, 11 px dim: "Start an agent" (edit mode: "Installed (N) · pin or hide").
-3. **Agent list**, scrollable:
+3. **Agent list**: up to 9 rows tall, then it scrolls (everything else stays put):
    - Normal mode: installed, not hidden agents only (pinned first, in pin
      order, then Herdr's order), hint `⌘ 1` … `⌘ 9`. Not-installed agents never
      show here: they couldn't start anyway.
@@ -38,9 +38,11 @@ Top to bottom:
 6. **New space** (`+`, hint `⌘ N`), **New worktree…**, **Open worktree…**
    (`mods/workspace-chrome/branch.svg`, disabled without an active space).
 
-Height: `min(491, 204 + max(1, rows) * 31)` px. The shipped menu's `167 + rows * 31`
-leaves its list about 6 px short, so the list scrolls by those pixels and its
-scrollbar can appear; 204 is that 167, plus 6, plus the Edit agents row.
+Height: the popup takes its content's height (no `h` on the root). The agent
+list alone gets an explicit `h(min(9, max(1, rows)) * 31)` with
+`overflow_y_scrollbar()`, so all `⌘ 1–9` rows fit without scrolling and the
+popup stays under the 512 px overlay. The shipped menu instead sets the root
+to `167 + rows * 31`, which left its list about 6 px short in testing.
 
 ## How it behaves
 
@@ -73,6 +75,9 @@ scrollbar can appear; 204 is that 167, plus 6, plus the Edit agents row.
 
 ## Watch out
 
+- A scroll area (`overflow_y_scrollbar`) has no height of its own: with
+  `flex_shrink_1` and no explicit `h` under a content-sized root it collapses to
+  0 and the agent rows vanish. Give it its row height.
 - The **+** button belongs to the shipped `tabs` mod:
   `openOverlay({ mod: "new-menu", kind: "popup", width: 250, height: 512 })`.
   Don't edit `tabs` or `new-menu` in place: on the next start Herdr moves an
