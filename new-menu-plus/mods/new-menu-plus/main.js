@@ -4,9 +4,11 @@ import { theme, spaces, panes, knownAgents, run, openOverlay, closeOverlay, prop
 
 // This mod's folder, for its own icons.
 const DIR = "mods/new-menu-plus";
-// Agent keys, persisted for every window, set under "Edit agents…".
+// Persisted for every window, set under "Edit agents…": agent keys, and whether
+// agents that aren't installed stay out of the menu.
 const HIDDEN = "newMenu.hidden";
 const PINNED = "newMenu.pinned";
+const HIDE_MISSING = "newMenu.hideMissing";
 
 /** @param {string} key @returns {string[]} */
 function keys(key) {
@@ -44,34 +46,46 @@ export default class NewMenu extends View {
       })
       .child(icon).child(div().flex_1().child(name)).child(div().text_size(11).text_color(t.dim).child(hint));
   }
-  // Edit mode: the row itself doesn't click; its pin and eye buttons do.
+  // Edit mode: the row itself doesn't click; its buttons do.
+  button(id, file, color, action) {
+    const t = theme();
+    return div().id(id).size(22).rounded(5).flex().items_center().justify_center()
+      .hover(s => s.bg(t.selected)).on_click(() => action())
+      .child(svg(`${DIR}/${file}`).size(13).text_color(color));
+  }
   editRow(a, icon, pinned, hidden) {
     const t = theme();
-    const button = (id, file, on, action) => div().id(id).size(22).rounded(5).flex().items_center().justify_center()
-      .hover(s => s.bg(t.selected)).on_click(() => action())
-      .child(svg(`${DIR}/${file}`).size(13).text_color(on ? t.foreground : t.dim));
     return h_flex().id(a.key).h(31).pl(9).pr(4).gap(10).rounded(7).items_center().flex_none()
       .text_color(hidden ? t.dim : t.foreground)
       .child(icon).child(div().flex_1().child(a.name))
-      .child(button(`pin-${a.key}`, "pin.svg", pinned, () => toggle(PINNED, a.key)))
-      .child(button(`eye-${a.key}`, hidden ? "eye-off.svg" : "eye.svg", !hidden, () => toggle(HIDDEN, a.key)));
+      .when(a.installed, el => el.child(this.button(`pin-${a.key}`, "pin.svg", pinned ? t.accent : t.dim, () => toggle(PINNED, a.key))))
+      .child(this.button(`eye-${a.key}`, hidden ? "eye-off.svg" : "eye.svg", hidden ? t.dim : t.foreground, () => toggle(HIDDEN, a.key)));
   }
   render() {
     const t = theme();
     const space = spaces().find(s => s.active);
     const hidden = new Set(keys(HIDDEN));
     const pinned = keys(PINNED);
+    const hideMissing = shared(HIDE_MISSING) === true;
     const rank = a => { const i = pinned.indexOf(a.key); return i < 0 ? pinned.length : i; };
     const ordered = [...this.agents].sort((a, b) => rank(a) - rank(b));
-    const installed = ordered.filter(a => a.installed && !hidden.has(a.key));
-    const choices = this.editing ? ordered : [...installed, ...ordered.filter(a => !a.installed && !hidden.has(a.key)).slice(0, 2)];
+    const all = ordered.filter(a => a.installed);
+    const missing = ordered.filter(a => !a.installed);
+    const installed = all.filter(a => !hidden.has(a.key));
+    const hiddenCount = all.length - installed.length;
     const mod = window()?.platform === "macos" ? "⌘" : "Ctrl";
     const icon = a => a.tint ? svg(a.icon).size(14).text_color(t.foreground) : image(a.icon).size(14);
-    const agentRow = (a, i) => this.editing
-      ? this.editRow(a, icon(a), pinned.includes(a.key), hidden.has(a.key))
-      : this.row(a.key, icon(a), a.name, () => run("tab.new", { name: a.name, space: space?.id, argv: a.run }),
-        a.installed ? (i < 9 ? `${mod} ${i + 1}` : "") : "not installed", a.installed);
-    return v_flex().min_h(0).w_full().h(Math.min(491, 198 + Math.max(1, choices.length) * 31)).bg(t.popover).p(5).text_size(12.8)
+    const editRow = a => this.editRow(a, icon(a), pinned.includes(a.key), hidden.has(a.key));
+    const rows = this.editing
+      ? [...all.map(editRow),
+        h_flex().id("missing").h(31).pl(9).pr(4).pt(6).items_center().flex_none().text_size(11).text_color(t.dim)
+          .child(div().flex_1().child(`Not installed (${missing.length})`))
+          .child(this.button("eye-missing", hideMissing ? "eye-off.svg" : "eye.svg", hideMissing ? t.dim : t.foreground, () => setShared(HIDE_MISSING, !hideMissing))),
+        ...(hideMissing ? [] : missing.map(editRow))]
+      : [...installed, ...(hideMissing ? [] : missing.filter(a => !hidden.has(a.key)).slice(0, 2))].map((a, i) =>
+        this.row(a.key, icon(a), a.name, () => run("tab.new", { name: a.name, space: space?.id, argv: a.run }),
+          a.installed ? (i < 9 ? `${mod} ${i + 1}` : "") : "not installed", a.installed));
+    return v_flex().min_h(0).w_full().h(Math.min(491, 198 + Math.max(1, rows.length) * 31)).bg(t.popover).p(5).text_size(12.8)
       .id("new-menu").track_focus(this.handle)
       .on_key_down((e) => {
         if (!e.modifiers.control && !e.modifiers.platform) return;
@@ -83,13 +97,13 @@ export default class NewMenu extends View {
         else run("space.new");
       })
       .child(this.row("terminal", svg("icons/shell.svg").size(14), "Terminal", () => run("tab.new", { space: space?.id }), `${mod} T`))
-      .child(div().px(9).pt(8).pb(4).text_size(11).text_color(t.dim).child(this.editing ? "Pin to top · show or hide" : "Start an agent"))
+      .child(div().px(9).pt(8).pb(4).text_size(11).text_color(t.dim).child(this.editing ? `Installed (${all.length}) · pin or hide` : "Start an agent"))
       .child(v_flex().flex_1().min_h(0).overflow_y_scrollbar()
-        .children(choices.map(agentRow))
+        .children(rows)
         .when(this.agents.length === 0, el => el.child(div().px(9).py(6).text_color(t.dim).child(this.failed ? "Could not load agents" : "Checking installed agents…"))))
       .child(this.row("edit-agents", svg(`${DIR}/${this.editing ? "check.svg" : "settings.svg"}`).size(14).text_color(t.dim),
         this.editing ? "Done" : "Edit agents\u2026", (cx) => { this.editing = !this.editing; cx.notify(); },
-        this.editing || hidden.size === 0 ? "" : `${hidden.size} hidden`, this.agents.length > 0, { close: false, dim: true }))
+        this.editing || hiddenCount === 0 ? "" : `${hiddenCount} hidden`, this.agents.length > 0, { close: false, dim: true }))
       .child(div().h(1).mx(4).my(5).bg(t.border))
       .child(this.row("space", div().w(14).child("+"), "New space", () => run("space.new"), `${mod} N`))
       .child(this.row("worktree", svg("mods/workspace-chrome/branch.svg").size(14), "New worktree…", () => openOverlay({ mod: "worktree", kind: "dialog", width: 460, height: 280, props: { space: space?.id, folder: panes().find(p => p.focused)?.cwd, action: "new" } }), "", Boolean(space)))
