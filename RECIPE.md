@@ -12,7 +12,7 @@ This file is the brief: enough to build Agent Menu from an empty folder. The fil
 - Top to bottom: Terminal; a small "Start an agent" label; the agent list; "Edit agents…"; a divider; New space, New worktree…, Open worktree….
 - The agent list holds only installed agents you haven't hidden, pinned ones first, each with its icon and a `⌘ 1`–`⌘ 9` hint (`Ctrl` off macOS). Up to nine rows show; more scroll inside the list while everything else stays put.
 - "Edit agents…" is dimmed, with a gear, and "2 hidden" on the right when you've hidden installed agents.
-- In edit mode the label reads "Installed (6) · pin or hide". Every installed agent gets two small buttons on the right: a pin, in your theme's accent color when pinned, and an eye, crossed out when the agent is hidden. Hidden agents are dimmed. Below them, a folded "› Not installed (10)" line opens a dimmed, read-only list of the agents Herdr knows but this machine doesn't have. "Edit agents…" becomes "Done" with a check mark.
+- In edit mode the label reads "Installed (6) · pin or hide". Every installed agent gets two small buttons on the right: a pin, in your theme's accent color when pinned, and an eye, crossed out when the agent is hidden. Hidden agents are dimmed. Below them, a folded "› Not installed (10)" line opens a dimmed, read-only list of the agents Herdr knows but this machine doesn't have; the line is left out when every agent is installed. "Edit agents…" becomes "Done" with a check mark.
 - Your theme's popup background, foreground and dim text; rows are 31px with rounded hover, text 12.8px, labels 11px.
 
 ## How it behaves
@@ -27,7 +27,7 @@ This file is the brief: enough to build Agent Menu from an empty folder. The fil
 | › Not installed | Unfolds or folds the list of agents that aren't installed |
 | Done | Back to the menu with your changes |
 
-Hidden agents don't take a number: hide the second agent and the third becomes `⌘ 2`. Pins and hidden agents are saved for every window and survive restarts. In edit mode the rows themselves don't react to clicks; only the buttons and the "Not installed" line do. "Not installed" opens folded every time. While the agent list loads the menu says "Checking installed agents…", and "Could not load agents" if that fails.
+Hidden agents don't take a number: hide the second agent and the third becomes `⌘ 2`. Pins and hidden agents are saved for every window and survive restarts. In edit mode the rows themselves don't react to clicks; only the buttons and the "Not installed" line do, and `⌘ 1`–`⌘ 9` do nothing. "Not installed" opens folded every time. While the agent list loads the menu says "Checking installed agents…", and "Could not load agents" if that fails. An empty list says "All agents hidden" when you've hidden every installed agent, and "No agents installed" when there are none.
 
 ## Built from
 
@@ -41,7 +41,7 @@ Hidden agents don't take a number: hide the second agent and the third becomes `
   In `mods/tabs-plus/main.js`, change the + button's `openOverlay({ mod: "new-menu", … })` to `mod: "agent-menu"`, then use `"mod": "tabs-plus"` instead of `"tabs"` in your own layout (clone a shipped layout first if you use one). Clones are never updated, so the change survives Herdr updates.
 - **The agents:** `knownAgents({ on })` for the active space's machine, once on open: Herdr's program table entries that have a `run` command, each marked installed or not. Agents start with `run("tab.new", { name, space, argv: agent.run })`.
 - **State:** `shared` / `setShared` with `agentMenu.pinned` and `agentMenu.hidden`, arrays of agent keys. `setShared` re-renders every mod, which refreshes the open popup.
-- **Sizing:** no height on the popup's root, so it takes its content's height. The agent list gets `h(min(9, rows) * 31)` with `overflow_y_scrollbar()`.
+- **Sizing:** no height on the popup's root, so it takes its content's height. The agent list gets `h(min(9, max(1, rows)) * 31)` with `overflow_y_scrollbar()`; the minimum of one row is what gives the loading, failure and empty messages their space.
 - **Commands:** `tab.new`, `space.new`, and `openOverlay` for the shipped `worktree` dialog (`action: "new"` at 460×280, `"open"` at 560×480). It closes itself with `closeOverlay(props().overlay)`.
 - No network, no `exec` or `hc`, no files outside its folder except the shipped `icons/shell.svg` and `mods/workspace-chrome/branch.svg`.
 

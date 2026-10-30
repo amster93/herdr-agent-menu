@@ -78,11 +78,11 @@ export default class AgentMenu extends View {
       .child(icon(a)).child(div().flex_1().child(a.name));
     const rows = this.editing
       ? [...all.map(a => this.editRow(a, icon(a), pinned.includes(a.key), hidden.has(a.key))),
-        h_flex().id("missing").h(31).px(9).pt(6).gap(6).rounded(7).items_center().flex_none().text_size(11).text_color(t.dim)
+        ...(missing.length ? [h_flex().id("missing").h(31).px(9).pt(6).gap(6).rounded(7).items_center().flex_none().text_size(11).text_color(t.dim)
           .hover(s => s.bg(t.selected)).on_click((_e, cx) => { this.showMissing = !this.showMissing; cx.notify(); })
           .child(svg(`${DIR}/${this.showMissing ? "chevron-down.svg" : "chevron-right.svg"}`).size(12).text_color(t.dim))
           .child(`Not installed (${missing.length})`),
-        ...(this.showMissing ? missing.map(missingRow) : [])]
+          ...(this.showMissing ? missing.map(missingRow) : [])] : [])]
       : installed.map((a, i) => this.row(a.key, icon(a), a.name, () => run("tab.new", { name: a.name, space: space?.id, argv: a.run }),
         i < 9 ? `${mod} ${i + 1}` : ""));
     // Sized by its content. The agent list shows up to 9 rows (⌘1–9) and scrolls past that; its
@@ -91,7 +91,8 @@ export default class AgentMenu extends View {
       .id("agent-menu").track_focus(this.handle)
       .on_key_down((e) => {
         if (!e.modifiers.control && !e.modifiers.platform) return;
-        const agent = /^[1-9]$/.test(e.key) ? installed[Number(e.key) - 1] : null;
+        // Digits follow the menu's numbering, which edit mode doesn't show.
+        const agent = !this.editing && /^[1-9]$/.test(e.key) ? installed[Number(e.key) - 1] : null;
         if (!agent && e.key !== "t" && e.key !== "n") return;
         closeOverlay(props().overlay);
         if (agent) run("tab.new", { name: agent.name, space: space?.id, argv: agent.run });
@@ -102,7 +103,8 @@ export default class AgentMenu extends View {
       .child(div().px(9).pt(8).pb(4).text_size(11).text_color(t.dim).child(this.editing ? `Installed (${all.length}) · pin or hide` : "Start an agent"))
       .child(v_flex().flex_none().h(Math.min(9, Math.max(1, rows.length)) * 31).overflow_y_scrollbar()
         .children(rows)
-        .when(this.agents.length === 0, el => el.child(div().px(9).py(6).text_color(t.dim).child(this.failed ? "Could not load agents" : "Checking installed agents…"))))
+        .when(this.agents.length === 0, el => el.child(div().px(9).py(6).text_color(t.dim).child(this.failed ? "Could not load agents" : "Checking installed agents…")))
+        .when(this.agents.length > 0 && rows.length === 0, el => el.child(div().px(9).py(6).text_color(t.dim).child(all.length && !this.editing ? "All agents hidden" : "No agents installed"))))
       .child(this.row("edit-agents", svg(`${DIR}/${this.editing ? "check.svg" : "settings.svg"}`).size(14).text_color(t.dim),
         this.editing ? "Done" : "Edit agents\u2026", (cx) => { this.editing = !this.editing; cx.notify(); },
         this.editing || hiddenCount === 0 ? "" : `${hiddenCount} hidden`, this.agents.length > 0, { close: false, dim: true }))
