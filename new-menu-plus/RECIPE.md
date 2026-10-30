@@ -66,8 +66,11 @@ Height: `min(491, 198 + max(1, rows) * 31)` px.
 
 - The **+** button belongs to the shipped `tabs` mod:
   `openOverlay({ mod: "new-menu", kind: "popup", width: 250, height: 512 })`.
-  Installed under its own name, this mod only shows once that call (or your
-  layout's own tab bar) opens `new-menu-plus` instead.
+  Don't edit `tabs` or `new-menu` in place: on the next start Herdr moves an
+  edited shipped mod to `<name>-edited` and restores its own. Instead clone the
+  tab bar (`herdr-app do mod.clone '{"name":"tabs","as":"tabs-plus"}'`), point
+  that `openOverlay` at `new-menu-plus`, and use `tabs-plus` in your own layout
+  (clone a shipped layout first if you use one). Clones are never updated.
 - Read the pin and hide lists in `render()`, not `init()`: `setShared` re-renders
   every mod, and that is what refreshes the open popup.
 - Edit-mode rows carry no `on_click` of their own, so the pin and eye buttons
