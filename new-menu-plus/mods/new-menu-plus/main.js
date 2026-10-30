@@ -85,7 +85,9 @@ export default class NewMenu extends View {
         ...(this.showMissing ? missing.map(missingRow) : [])]
       : installed.map((a, i) => this.row(a.key, icon(a), a.name, () => run("tab.new", { name: a.name, space: space?.id, argv: a.run }),
         i < 9 ? `${mod} ${i + 1}` : ""));
-    return v_flex().min_h(0).w_full().h(Math.min(491, 198 + Math.max(1, rows.length) * 31)).bg(t.popover).p(5).text_size(12.8)
+    // 204: Herdr's 167 (terminal, label, divider, three rows, padding) leaves the list ~6 px short,
+    // which shows a scrollbar; plus 31 for the Edit agents row.
+    return v_flex().min_h(0).w_full().h(Math.min(491, 204 + Math.max(1, rows.length) * 31)).bg(t.popover).p(5).text_size(12.8)
       .id("new-menu").track_focus(this.handle)
       .on_key_down((e) => {
         if (!e.modifiers.control && !e.modifiers.platform) return;
