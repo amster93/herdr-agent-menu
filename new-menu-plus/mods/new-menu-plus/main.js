@@ -4,11 +4,10 @@ import { theme, spaces, panes, knownAgents, run, openOverlay, closeOverlay, prop
 
 // This mod's folder, for its own icons.
 const DIR = "mods/new-menu-plus";
-// Persisted for every window, set under "Edit agents…": agent keys, and whether
-// agents that aren't installed stay out of the menu.
+// Agent keys, persisted for every window, set under "Edit agents…".
+// Agents that aren't installed never show in the menu; edit mode lists them folded.
 const HIDDEN = "newMenu.hidden";
 const PINNED = "newMenu.pinned";
-const HIDE_MISSING = "newMenu.hideMissing";
 
 /** @param {string} key @returns {string[]} */
 function keys(key) {
@@ -26,6 +25,7 @@ export default class NewMenu extends View {
   init(_props, cx) {
     this.agents = [];
     this.editing = false;
+    this.showMissing = false;
     this.handle = cx.focus_handle();
     this.handle.focus();
     cx.spawn(async cx => {
@@ -58,7 +58,7 @@ export default class NewMenu extends View {
     return h_flex().id(a.key).h(31).pl(9).pr(4).gap(10).rounded(7).items_center().flex_none()
       .text_color(hidden ? t.dim : t.foreground)
       .child(icon).child(div().flex_1().child(a.name))
-      .when(a.installed, el => el.child(this.button(`pin-${a.key}`, "pin.svg", pinned ? t.accent : t.dim, () => toggle(PINNED, a.key))))
+      .child(this.button(`pin-${a.key}`, "pin.svg", pinned ? t.accent : t.dim, () => toggle(PINNED, a.key)))
       .child(this.button(`eye-${a.key}`, hidden ? "eye-off.svg" : "eye.svg", hidden ? t.dim : t.foreground, () => toggle(HIDDEN, a.key)));
   }
   render() {
@@ -66,7 +66,6 @@ export default class NewMenu extends View {
     const space = spaces().find(s => s.active);
     const hidden = new Set(keys(HIDDEN));
     const pinned = keys(PINNED);
-    const hideMissing = shared(HIDE_MISSING) === true;
     const rank = a => { const i = pinned.indexOf(a.key); return i < 0 ? pinned.length : i; };
     const ordered = [...this.agents].sort((a, b) => rank(a) - rank(b));
     const all = ordered.filter(a => a.installed);
@@ -75,16 +74,17 @@ export default class NewMenu extends View {
     const hiddenCount = all.length - installed.length;
     const mod = window()?.platform === "macos" ? "⌘" : "Ctrl";
     const icon = a => a.tint ? svg(a.icon).size(14).text_color(t.foreground) : image(a.icon).size(14);
-    const editRow = a => this.editRow(a, icon(a), pinned.includes(a.key), hidden.has(a.key));
+    const missingRow = a => h_flex().id(a.key).h(31).px(9).gap(10).items_center().flex_none().text_color(t.dim)
+      .child(icon(a)).child(div().flex_1().child(a.name));
     const rows = this.editing
-      ? [...all.map(editRow),
-        h_flex().id("missing").h(31).pl(9).pr(4).pt(6).items_center().flex_none().text_size(11).text_color(t.dim)
-          .child(div().flex_1().child(`Not installed (${missing.length})`))
-          .child(this.button("eye-missing", hideMissing ? "eye-off.svg" : "eye.svg", hideMissing ? t.dim : t.foreground, () => setShared(HIDE_MISSING, !hideMissing))),
-        ...(hideMissing ? [] : missing.map(editRow))]
-      : [...installed, ...(hideMissing ? [] : missing.filter(a => !hidden.has(a.key)).slice(0, 2))].map((a, i) =>
-        this.row(a.key, icon(a), a.name, () => run("tab.new", { name: a.name, space: space?.id, argv: a.run }),
-          a.installed ? (i < 9 ? `${mod} ${i + 1}` : "") : "not installed", a.installed));
+      ? [...all.map(a => this.editRow(a, icon(a), pinned.includes(a.key), hidden.has(a.key))),
+        h_flex().id("missing").h(31).px(9).pt(6).gap(6).rounded(7).items_center().flex_none().text_size(11).text_color(t.dim)
+          .hover(s => s.bg(t.selected)).on_click((_e, cx) => { this.showMissing = !this.showMissing; cx.notify(); })
+          .child(svg(`${DIR}/${this.showMissing ? "chevron-down.svg" : "chevron-right.svg"}`).size(12).text_color(t.dim))
+          .child(`Not installed (${missing.length})`),
+        ...(this.showMissing ? missing.map(missingRow) : [])]
+      : installed.map((a, i) => this.row(a.key, icon(a), a.name, () => run("tab.new", { name: a.name, space: space?.id, argv: a.run }),
+        i < 9 ? `${mod} ${i + 1}` : ""));
     return v_flex().min_h(0).w_full().h(Math.min(491, 198 + Math.max(1, rows.length) * 31)).bg(t.popover).p(5).text_size(12.8)
       .id("new-menu").track_focus(this.handle)
       .on_key_down((e) => {
