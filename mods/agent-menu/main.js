@@ -3,11 +3,11 @@ import { h_flex, v_flex } from "gpui-base";
 import { theme, spaces, panes, knownAgents, run, openOverlay, closeOverlay, props, window, shared, setShared } from "herdr";
 
 // This mod's folder, for its own icons.
-const DIR = "mods/new-menu-plus";
+const DIR = "mods/agent-menu";
 // Agent keys, persisted for every window, set under "Edit agents…".
 // Agents that aren't installed never show in the menu; edit mode lists them folded.
-const HIDDEN = "newMenu.hidden";
-const PINNED = "newMenu.pinned";
+const HIDDEN = "agentMenu.hidden";
+const PINNED = "agentMenu.pinned";
 
 /** @param {string} key @returns {string[]} */
 function keys(key) {
@@ -21,7 +21,7 @@ function toggle(key, agent) {
   setShared(key, list.includes(agent) ? list.filter(k => k !== agent) : [...list, agent]);
 }
 
-export default class NewMenu extends View {
+export default class AgentMenu extends View {
   init(_props, cx) {
     this.agents = [];
     this.editing = false;
@@ -88,7 +88,7 @@ export default class NewMenu extends View {
     // Sized by its content. The agent list shows up to 9 rows (⌘1–9) and scrolls past that; its
     // height is set from its rows, since a scroll area has no height of its own.
     return v_flex().min_h(0).w_full().bg(t.popover).p(5).text_size(12.8)
-      .id("new-menu").track_focus(this.handle)
+      .id("agent-menu").track_focus(this.handle)
       .on_key_down((e) => {
         if (!e.modifiers.control && !e.modifiers.platform) return;
         const agent = /^[1-9]$/.test(e.key) ? installed[Number(e.key) - 1] : null;

@@ -1,4 +1,4 @@
-# New menu plus
+# Agent Menu
 
 The tab bar's **+** menu (Terminal, Start an agent, New space, worktrees), with
 the agent list under your control: pin the agents you use to the top and hide
@@ -7,7 +7,7 @@ the ones you never start. Agents that aren't installed stay out of the menu.
 with a pin and an eye button per agent. The choices persist across windows
 and restarts.
 
-![New menu plus](preview.png)
+![Agent Menu](preview.png)
 
 ## What you see
 
@@ -60,12 +60,12 @@ to `167 + rows * 31`, which left its list about 6 px short in testing.
 
 ## Built from
 
-- One overlay mod, `mods/new-menu-plus/` with `main.js`, `mod.json`
+- One overlay mod, `mods/agent-menu/` with `main.js`, `mod.json`
   (`{ "place": "none" }`) and seven Lucide glyphs (ISC): `pin`, `eye`,
   `eye-off`, `check`, `settings`, `chevron-right`, `chevron-down`. A `DIR`
   constant holds the folder for its icon paths.
 - `herdr`: `knownAgents({ on: activeSpace.machine })` (once in `init`, in `cx.spawn`),
-  `shared` / `setShared` with keys `newMenu.hidden` and `newMenu.pinned` (arrays of
+  `shared` / `setShared` with keys `agentMenu.hidden` and `agentMenu.pinned` (arrays of
   agent keys), `run("tab.new" | "space.new")`, `openOverlay` for the shipped
   `worktree` dialog (`{action: "new"}` 460×280, `{action: "open"}` 560×480),
   `closeOverlay(props().overlay)`, `spaces()`, `panes()`, `window().platform`, `theme()`.
@@ -83,7 +83,7 @@ to `167 + rows * 31`, which left its list about 6 px short in testing.
   Don't edit `tabs` or `new-menu` in place: on the next start Herdr moves an
   edited shipped mod to `<name>-edited` and restores its own. Instead clone the
   tab bar (`herdr-app do mod.clone '{"name":"tabs","as":"tabs-plus"}'`), point
-  that `openOverlay` at `new-menu-plus`, and use `tabs-plus` in your own layout
+  that `openOverlay` at `agent-menu`, and use `tabs-plus` in your own layout
   (clone a shipped layout first if you use one). Clones are never updated.
 - Read the pin and hide lists in `render()`, not `init()`: `setShared` re-renders
   every mod, and that is what refreshes the open popup.
@@ -104,4 +104,4 @@ to `167 + rows * 31`, which left its list about 6 px short in testing.
   hint shows "1 hidden"; its number went to the next agent.
 - Pin an agent in edit mode: after Done it is the first agent row and starts with `⌘ 1`.
 - Closing and reopening the window keeps pins and hidden agents.
-- `herdr-app check mods/new-menu-plus` passes.
+- `herdr-app check mods/agent-menu` passes.
