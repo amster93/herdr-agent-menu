@@ -39,8 +39,8 @@ Top to bottom:
    (`mods/workspace-chrome/branch.svg`, disabled without an active space).
 
 Height: `min(491, 204 + max(1, rows) * 31)` px. The shipped menu's `167 + rows * 31`
-leaves its list about 6 px short, so a scrollbar shows on hover; 204 is that 167,
-plus 6, plus the Edit agents row.
+leaves its list about 6 px short, so the list scrolls by those pixels and its
+scrollbar can appear; 204 is that 167, plus 6, plus the Edit agents row.
 
 ## How it behaves
 
